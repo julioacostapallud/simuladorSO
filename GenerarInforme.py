@@ -26,7 +26,7 @@ def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria):
         for particion in memoria.particiones
     ]
     print("- MEMORIA:")
-    print(tabulate(filas_memoria, headers=["Partición ID", "Tamaño Partición", "Proceso Asignado", "Tamaño del Proceso", "Fragmentación Interna"]))
+    print(tabulate(filas_memoria, headers=["PAR OD", "PAR TAM", "PID", "P TAM", "FRAG INT"]))
 
     # Cola de Listos
     print(f"- COLA DE LISTOS: {[proceso.id for proceso in listos]}")
@@ -43,7 +43,7 @@ def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria):
             for proceso in finalizados
         ]
         print("- INFORME DE PROCESOS:")
-        print(tabulate(filas_procesos, headers=["Proceso ID", "Tamaño del Proceso", "Partición ID", "Tamaño Partición", "Fragmentación Interna", "Tiempo de Retorno", "Tiempo de Espera"]))
+        print(tabulate(filas_procesos, headers=["P ID", "TAM PRO", "PAR ID", "PAR TAM", "FRAG INT", "TR", "TE"]))
         # Acá va en formato tabla el tiempo retorno promedio, tiempo espera promedio y rendimiento del sistema
     else:
         print("- INFORME DE PROCESOS: Ningún proceso ha finalizado todavía.")
@@ -62,11 +62,11 @@ def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria):
 
         # Formato tabla con columnas solicitadas
         filas_estadisticas = [
-            [f"{tiempo_retorno_promedio:.2f}" + " Unidades de tiempo", f"{tiempo_espera_promedio:.2f}" + " Unidades de tiempo", f"{rendimiento_sistema:.2f}" + " Procesos por unidad de tiempo"]
+            [f"{tiempo_retorno_promedio:.2f}", f"{tiempo_espera_promedio:.2f}", f"{rendimiento_sistema:.2f}"]
         ]
 
         # Mostrar tabla con tiempos promedio y rendimiento        
-        print(tabulate(filas_estadisticas, headers=["Tiempo de Retorno Promedio", "Tiempo de Espera Promedio", "Rendimiento del Sistema"]))
+        print(tabulate(filas_estadisticas, headers=["TRP", "TEP", "Rendimiento del Sistema"]))
         
     else:
         print("No hay procesos finalizados para calcular las estadísticas.")

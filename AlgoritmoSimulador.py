@@ -86,7 +86,7 @@ def simulador(procesos):
             elif procesador.quantum_restante == 0 and not procesador.proceso.ha_terminado():
                 Listos.append(procesador.proceso)
                 line += 1
-                print(f"{line}> {f'Proceso {procesador.proceso.id} agota el quantum en esta unidad de tiempo y pasa a cola de LISTOS'}")
+                print(f"{line}> {f'Proceso {proceso_actual.id} agota el quantum en esta unidad de tiempo y pasa a cola de LISTOS'}")
                 procesador.liberar()
 
         # Generar informe antes de incrementar el tiempo
@@ -107,6 +107,17 @@ def simulador(procesos):
 
         # Terminar si todos los procesos han finalizado
         if len(Finalizados) == len(procesos):
+            # Mostrar informe final
+            print(Fore.YELLOW + "==================================================")
+            print(Fore.YELLOW + "                SIMULACIÓN FINALIZADA               ")
+            print(Fore.YELLOW + "==================================================")
+            generar_informe(Finalizados, Listos, Suspendidos, procesador, t, memoria)
+
+            # Actualizar gráficos finales
+            graficador.actualizar_graficos(procesador, memoria, Listos, Suspendidos, Finalizados, t)
+            
+            # Esperar que el usuario presione ENTER para finalizar
+            input(Fore.RED + "\nPresiona ENTER para finalizar la simulación...")
             break
 
     # Cerrar los gráficos al finalizar la simulación
