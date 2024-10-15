@@ -5,6 +5,7 @@ from ClaseMemoria import Memoria
 from ClaseParticion import Particion
 from ClaseProcesador import Procesador
 from GenerarInforme import generar_informe
+import graficador  # Importamos el graficador
 
 init(autoreset=True)
 os.system('cls')
@@ -24,7 +25,8 @@ def simulador(procesos):
     Suspendidos = []
     Finalizados = []
     t = 0
-    
+
+    # Bucle principal de simulación
     while True:
         line = 0
         print(f"                UNIDAD DE TIEMPO: {Back.RED}{Fore.YELLOW}{t}{Style.RESET_ALL}                ")
@@ -76,10 +78,9 @@ def simulador(procesos):
                 procesador.proceso.tiempo_finalizacion = t
                 Finalizados.append(procesador.proceso)
                 line += 1
-                print(f"{line}> {f'Proceso {proceso.id} finaliza en esta unidad de tiempo'}")
+                print(f"{line}> {f'Proceso {procesador.proceso.id} finaliza en esta unidad de tiempo'}")
                 memoria.liberar_particion(procesador.proceso)
                 procesador.liberar()
-                
 
             # Si el quantum ha terminado pero el proceso no ha finalizado
             elif procesador.quantum_restante == 0 and not procesador.proceso.ha_terminado():
@@ -87,14 +88,18 @@ def simulador(procesos):
                 line += 1
                 print(f"{line}> {f'Proceso {procesador.proceso.id} agota el quantum en esta unidad de tiempo y pasa a cola de LISTOS'}")
                 procesador.liberar()
-                
+
         # Generar informe antes de incrementar el tiempo
-       
         print(Fore.GREEN + "==================================================")
         generar_informe(Finalizados, Listos, Suspendidos, procesador, t, memoria)
 
-        # time.sleep(2)
-        input()
+        # Actualizar gráficos después del informe y obtener el botón
+        boton_rect = graficador.actualizar_graficos(procesador, memoria, Listos, Suspendidos, Finalizados, t)
+
+        # Esperar evento de clic en el botón o ENTER en la terminal
+        graficador.esperar_evento_o_enter(boton_rect)
+
+        # Limpiar la terminal antes de avanzar
         os.system('cls')
 
         # Incrementar el tiempo
@@ -103,5 +108,8 @@ def simulador(procesos):
         # Terminar si todos los procesos han finalizado
         if len(Finalizados) == len(procesos):
             break
+
+    # Cerrar los gráficos al finalizar la simulación
+    graficador.cerrar_graficos()
 
     return Finalizados
