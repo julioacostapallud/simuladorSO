@@ -3,6 +3,7 @@ class Procesador:
         self.quantum = quantum
         self.quantum_restante = quantum
         self.proceso = None
+        self.procesoSaliente = None
         self.libre = True
 
     def asignar_proceso(self, proceso):
@@ -17,5 +18,6 @@ class Procesador:
             self.quantum_restante -= tiempo_a_ejecutar
 
     def liberar(self):
+        self.procesoSaliente = self.proceso
         self.proceso = None
         self.libre = True

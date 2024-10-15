@@ -1,10 +1,21 @@
 from tabulate import tabulate
+from colorama import Fore, Style, init
+
+init(autoreset=True)
 
 def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria):
-    print(f"Tiempo: {t}")
     
-    # Procesador
-    print(f"Procesador: {'(Libre)' if procesador.libre else f'Ejecutando proceso {procesador.proceso.id}'}")
+    print(Fore.YELLOW + "==================================================")
+    print(Fore.YELLOW + f" Estado general al finalizar el Tiempo: {t}")
+    print(Fore.YELLOW + "==================================================")
+    
+        
+   # Procesador
+    if not procesador.procesoSaliente and not procesador.proceso:
+        print("- PROCESADOR: Libre")
+    else:
+        print(f"- PROCESADOR: {f'Liberado del proceso {procesador.procesoSaliente.id} (quantum agotado)' if not procesador.proceso else f'Ejecutando proceso {procesador.proceso.id} | quantum restante {procesador.quantum_restante}'}")
+
 
     # Memoria (tabla con las 4 particiones)
     filas_memoria = [
@@ -14,26 +25,52 @@ def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria):
          particion.calcular_fragmentacion_interna()] 
         for particion in memoria.particiones
     ]
-    print("Memoria:")
+    print("- MEMORIA:")
     print(tabulate(filas_memoria, headers=["Partición ID", "Tamaño Partición", "Proceso Asignado", "Tamaño del Proceso", "Fragmentación Interna"]))
 
     # Cola de Listos
-    print(f"Cola de listos: {[proceso.id for proceso in listos]}")
+    print(f"- COLA DE LISTOS: {[proceso.id for proceso in listos]}")
 
     # Cola de Suspendidos
-    print(f"Cola de suspendidos: {[proceso.id for proceso in suspendidos]}")
+    print(f"- COLA DE SUSPENDIDOS: {[proceso.id for proceso in suspendidos]}")
 
     # Informe de procesos finalizados
     if finalizados:
         filas_procesos = [
             [proceso.id, proceso.tamaño, proceso.particion_asignada.id, 
-             proceso.particion_asignada.tamaño, proceso.particion_asignada.calcular_fragmentacion_interna(),
+             proceso.particion_asignada.tamaño, proceso.fragmentacion_interna_generada,
              proceso.calcular_tiempo_retorno(), proceso.calcular_tiempo_espera()] 
             for proceso in finalizados
         ]
-        print("Informe de procesos:")
+        print("- INFORME DE PROCESOS:")
         print(tabulate(filas_procesos, headers=["Proceso ID", "Tamaño del Proceso", "Partición ID", "Tamaño Partición", "Fragmentación Interna", "Tiempo de Retorno", "Tiempo de Espera"]))
+        # Acá va en formato tabla el tiempo retorno promedio, tiempo espera promedio y rendimiento del sistema
     else:
-        print("Informe de procesos: Ningún proceso ha finalizado todavía.")
+        print("- INFORME DE PROCESOS: Ningún proceso ha finalizado todavía.")
 
-    print("==================================================")
+   
+    print(Fore.YELLOW + "==================================================")
+    print(Fore.CYAN + "==================================================")
+    print(Fore.CYAN + f"Estadísticas de rendimiento del sistema en tiempo: {t}")
+    print(Fore.CYAN + "==================================================")
+
+    if finalizados:  # Verifica si hay elementos en la lista 'finalizados'
+        # Cálculo de tiempos promedio
+        tiempo_retorno_promedio = sum(proceso.calcular_tiempo_retorno() for proceso in finalizados) / len(finalizados)
+        tiempo_espera_promedio = sum(proceso.calcular_tiempo_espera() for proceso in finalizados) / len(finalizados)
+        rendimiento_sistema = len(finalizados) / t
+
+        # Formato tabla con columnas solicitadas
+        filas_estadisticas = [
+            [f"{tiempo_retorno_promedio:.2f}" + " Unidades de tiempo", f"{tiempo_espera_promedio:.2f}" + " Unidades de tiempo", f"{rendimiento_sistema:.2f}" + " Procesos por unidad de tiempo"]
+        ]
+
+        # Mostrar tabla con tiempos promedio y rendimiento        
+        print(tabulate(filas_estadisticas, headers=["Tiempo de Retorno Promedio", "Tiempo de Espera Promedio", "Rendimiento del Sistema"]))
+        
+    else:
+        print("No hay procesos finalizados para calcular las estadísticas.")
+    
+    print(Fore.CYAN + "==================================================")
+
+    
