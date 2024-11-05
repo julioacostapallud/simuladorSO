@@ -215,23 +215,41 @@ def dibujar_procesos_finalizados(pantalla, finalizados):
         pantalla.blit(texto_proceso, (x + (5 if proceso.id < 10 else 1), y + 5))
         x += 35
 
-def dibujar_botones(t, procesos):
+def dibujar_botones(t, procesos, indice_estado, historial_estados, cambios_contexto_indices):
     boton_rect_avanzar, boton_rect_retroceder = None, None
-    # Botón para avanzar
-    if any(proceso.tiempo_finalizacion is None for proceso in procesos):
-        boton_rect_avanzar = pygame.Rect(ancho - 90, 35, 85, 20)
+    boton_rect_avanzar_cc, boton_rect_retroceder_cc = None, None
+
+    # Botón para avanzar: solo se muestra si queda algún proceso sin finalizar
+    if any(proceso.tiempo_finalizacion is None for proceso in procesos) and indice_estado < len(historial_estados) - 1:
+        boton_rect_avanzar = pygame.Rect(ancho - 190, 35, 85, 20)
         pygame.draw.rect(pantalla, COLOR_AZUL if t > -1 else COLOR_VERDE, boton_rect_avanzar)
-        texto_boton_avanzar = fuente_pequeña.render(f"{'Avanzar' if t > -1 else 'Iniciar'}", True, COLOR_NEGRO if t > -1 else COLOR_NEGRO)
-        pantalla.blit(texto_boton_avanzar, (ancho - 72, 38))
-    
-    # Botón para retroceder    
-    if (t >= 0) :
-        boton_rect_retroceder = pygame.Rect(ancho - 200, 35, 85, 20)
+        texto_boton_avanzar = fuente_pequeña.render(f"{'Avanzar' if t > -1 else 'Iniciar'}", True, COLOR_NEGRO)
+        pantalla.blit(texto_boton_avanzar, (ancho - 172, 38))
+
+    # Botón para retroceder: solo se muestra si no estamos en el primer estado
+    if indice_estado > 0:
+        boton_rect_retroceder = pygame.Rect(ancho - 285, 35, 85, 20)
         pygame.draw.rect(pantalla, COLOR_AZUL, boton_rect_retroceder)
         texto_boton_retroceder = fuente_pequeña.render("Retroceder", True, COLOR_NEGRO)
-        pantalla.blit(texto_boton_retroceder, (ancho - 190, 38))
+        pantalla.blit(texto_boton_retroceder, (ancho - 275, 38))
 
-    return boton_rect_avanzar, boton_rect_retroceder
+    # Botón para avanzar a cambio de contexto: solo si existe un cambio de contexto después del estado actual
+    if any(i > indice_estado for i in cambios_contexto_indices):
+        boton_rect_avanzar_cc = pygame.Rect(ancho - 95, 35, 90, 20)
+        pygame.draw.rect(pantalla, COLOR_ROJO, boton_rect_avanzar_cc)
+        texto_boton_avanzar_cc = fuente_pequeña.render("Avanzar CC", True, COLOR_NEGRO)
+        pantalla.blit(texto_boton_avanzar_cc, (ancho - 87, 38))
+
+    # Botón para retroceder a cambio de contexto: solo si existe un cambio de contexto antes del estado actual
+    if any(i < indice_estado for i in cambios_contexto_indices):
+        boton_rect_retroceder_cc = pygame.Rect(ancho - 405, 35, 110, 20)
+        pygame.draw.rect(pantalla, COLOR_ROJO, boton_rect_retroceder_cc)
+        texto_boton_retroceder_cc = fuente_pequeña.render("Retroceder CC", True, COLOR_NEGRO)
+        pantalla.blit(texto_boton_retroceder_cc, (ancho - 395, 38))
+
+    return boton_rect_avanzar, boton_rect_retroceder, boton_rect_avanzar_cc, boton_rect_retroceder_cc
+
+
 
 def edge(pantalla, x, y):
     pygame.draw.line(pantalla, COLOR_NEGRO, (x - 5, y), (x, y), 1)
@@ -531,7 +549,7 @@ def dibujar_procesos(pantalla, procesos, t, x, y, l):
         pantalla.blit(texto_irrupcion, (pos_x + l - texto_irrupcion.get_width() - 5, pos_y + 5))
 
 # Función principal para actualizar los gráficos
-def actualizar_graficos(procesador, memoria, cola_listos, cola_suspendidos, finalizados, t, procesos, eventos):
+def actualizar_graficos(procesador, memoria, cola_listos, cola_suspendidos, finalizados, t, procesos, eventos, indice_estado, historial_estados, cambios_contexto_indices):
     # Limpiar pantalla
     pantalla.fill(COLOR_BLANCO)
 
@@ -551,17 +569,10 @@ def actualizar_graficos(procesador, memoria, cola_listos, cola_suspendidos, fina
     texto_subtitulo3 = fuente_pequeña.render(f"5 PROCESOS", True, COLOR_VIOLETA_OSCURO)
     pantalla.blit(texto_subtitulo3, (205, 40))
 
-    # Dibujar "Tiempo de Simulación"
-    # texto_tiempo_unidad = fuente_grande.render(f"Tiempo {t if t > -1 else '-'}", True, COLOR_NEGRO)
-    # pantalla.blit(texto_tiempo_unidad, (ancho - 155, 10))
-
-    # Renderizar la parte antes de "t" en negro
     texto_antes = fuente_grande.render("Tiempo ", True, COLOR_NEGRO)
-    pantalla.blit(texto_antes, (ancho - 155, 10))  # Dibujar la parte antes de "t"
-
-    # Renderizar "t" en COLOR_VIOLETA_OSCURO
+    pantalla.blit(texto_antes, (ancho - 255, 10))
     texto_t = fuente_grande.render(f"{t if t > -1 else '-'}", True, COLOR_VIOLETA_OSCURO)
-    pantalla.blit(texto_t, (ancho - 70, 10))  # Dibujar "t" justo después del texto anterior
+    pantalla.blit(texto_t, (ancho - 170, 10))
 
     # Dibujar componentes del simulador
     dibujar_procesador(pantalla, procesador, cola_listos)
@@ -575,80 +586,80 @@ def actualizar_graficos(procesador, memoria, cola_listos, cola_suspendidos, fina
     edge(pantalla, 275, 185)
     dibujar_flecha_izquierda(pantalla, 275, 250)
     edge(pantalla, 275, 255)
-        
-    # Dibujar tabla de memoria
+
     filas_memoria = generar_array_memoria(memoria)
     headers_memoria = ["ID","INI", "FIN", "PAR TAM", "PID", "PTAM", "FRAG INT"]
     texto_memoria = fuente_pequeña.render("TABLA DE MEMORIA", True, COLOR_VIOLETA_OSCURO)
     pantalla.blit(texto_memoria, (500, 80))
     dibujar_tabla_memoria(pantalla, filas_memoria, headers_memoria)
 
-    # Dibujar tabla de procesos
     filas_procesos = generar_array_procesos(finalizados)
     headers_procesos = ["PID", "TAM PRO", "PAR ID", "PAR TAM", "FRAG INT", "TR", "TE"]
     texto_procesos = fuente_pequeña.render("INFORMACIÓN DE PROCESOS", True, COLOR_VIOLETA_OSCURO)
     pantalla.blit(texto_procesos, (500, 245))
     dibujar_tabla_procesos(pantalla, filas_procesos, headers_procesos)
 
-     # Dibujar tabla de rendimiento
     texto_rendimiento = fuente_pequeña.render("RENDIMIENTO", True, COLOR_VIOLETA_OSCURO)
-    pantalla.blit(texto_rendimiento, (960, 80))  # Posicionamos a la derecha de la tabla de memoria
-    if (len(finalizados) > 0):
+    pantalla.blit(texto_rendimiento, (960, 80))
+    if len(finalizados) > 0:
         filas_rendimiento = generar_array_rendimiento(finalizados, t)
         headers_rendimiento = ["TRP", "TEP", "Rendimiento"]
         dibujar_tabla_rendimiento(pantalla, filas_rendimiento, headers_rendimiento)
 
-    # Llamar a la función para dibujar los eventos
     dibujar_eventos(pantalla, eventos, comienzo_x=900, comienzo_y=245, ancho=285, cortar_texto=True, t=t)
 
-    # Separadores
-    pygame.draw.line(pantalla, COLOR_NEGRO, (490, 80), (490, 620), 2)  # Línea negra con grosor 2
-    pygame.draw.line(pantalla, COLOR_NEGRO, (955, 80), (955, 230), 2)  # Línea negra con grosor 2
-    pygame.draw.line(pantalla, COLOR_NEGRO, (900, 240), (900, 620), 2)  # Línea negra con grosor 2
-    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 65), (1180, 65), 2)  # Línea horizontal
-    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 320), (480, 320), 2)  # Línea horizontal
-    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 390), (480, 390), 2)  # Línea horizontal
-    pygame.draw.line(pantalla, COLOR_NEGRO, (500, 235), (1180, 235), 2)  # Línea horizontal
-    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 630), (1180, 630), 2)  # Línea horizontal
+    pygame.draw.line(pantalla, COLOR_NEGRO, (490, 80), (490, 620), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (955, 80), (955, 230), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (900, 240), (900, 620), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 65), (1180, 65), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 320), (480, 320), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 390), (480, 390), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (500, 235), (1180, 235), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (20, 630), (1180, 630), 2)
+
+    pygame.draw.line(pantalla, COLOR_NEGRO, (791, 60), (1197, 60), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (791, 5), (1197, 5), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (791, 5), (791, 60), 2)
+    pygame.draw.line(pantalla, COLOR_NEGRO, (1197, 5), (1197, 60), 2)
 
     texto_finalizados = fuente_pequeña.render("DATOS DE PROCESOS", True, COLOR_VIOLETA_OSCURO)
     pantalla.blit(texto_finalizados, (20, 405))
     dibujar_procesos(pantalla, procesos, t, 20, 435, 85)
 
-    # Dibujar botón de avanzar y retroceder
-    boton_rect_avanzar, boton_rect_retroceder = dibujar_botones(t, procesos)
+    # Dibujar los botones con las condiciones actualizadas
+    boton_rect_avanzar, boton_rect_retroceder, boton_rect_avanzar_cc, boton_rect_retroceder_cc = dibujar_botones(
+        t, procesos, indice_estado, historial_estados, cambios_contexto_indices
+    )
 
- # Actualizar pantalla
+    # Actualizar pantalla
     pygame.display.flip()
-    clock.tick(60)  # Limitar la simulación a 60 FPS
+    clock.tick(60)
 
-    return boton_rect_avanzar, boton_rect_retroceder
+    return boton_rect_avanzar, boton_rect_retroceder, boton_rect_avanzar_cc, boton_rect_retroceder_cc
 
 # Esperar a que el usuario presione el botón en Pygame o ENTER en la terminal
-def esperar_evento_o_enter(boton_rect_avanzar, boton_rect_retroceder, indice_estado, historial_estados, procesos):
+def esperar_evento_o_enter(boton_rect_avanzar, boton_rect_retroceder, boton_rect_avanzar_cc, boton_rect_retroceder_cc, indice_estado, historial_estados, cambios_contexto_indices):
     while True:
-        # Captura eventos de pygame
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 cerrar_graficos()
-                exit()  # Salir si se cierra la ventana
+                exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                # Verificar que el botón avanzar existe y que no estamos en el último estado
                 if boton_rect_avanzar and boton_rect_avanzar.collidepoint(event.pos):
-                    return 'avanzar'  # Salir del bucle si se hace clic en el botón de avanzar
+                    return 'avanzar'
                 
-                # Verificar que el botón retroceder existe y que no estamos en el primer estado
                 elif boton_rect_retroceder and boton_rect_retroceder.collidepoint(event.pos):
                     if indice_estado > 0:
-                        return 'retroceder'  # Salir del bucle si se hace clic en el botón de retroceder
+                        return 'retroceder'
+                
+                elif boton_rect_avanzar_cc and boton_rect_avanzar_cc.collidepoint(event.pos):
+                    return 'avanzar_cc'
+                
+                elif boton_rect_retroceder_cc and boton_rect_retroceder_cc.collidepoint(event.pos):
+                    return 'retroceder_cc'
 
-        # # Verificar si se ha presionado ENTER en la terminal
-        # if os.name == 'nt':  # Para sistemas Windows
-        #     if msvcrt.kbhit() and msvcrt.getch() == b'\r':  # Detectar ENTER en Windows
-        #         return 'avanzar'
-
-        clock.tick(60)
+        pygame.time.Clock().tick(60)
 
 # Función para cerrar Pygame
 def cerrar_graficos():
