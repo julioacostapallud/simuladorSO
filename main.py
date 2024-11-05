@@ -1,3 +1,6 @@
+import sys
+sys.dont_write_bytecode = True  # Evita la creación de __pycache__
+
 from AlgoritmoSimulador import simulador
 from procesos_data import obtener_procesos
 from ClaseProceso import Proceso
