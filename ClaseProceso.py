@@ -8,6 +8,7 @@ class Proceso:
         self.tiempo_finalizacion = None
         self.particion_asignada = None
         self.fragmentacion_interna_generada = 0
+        self.admitido = False  # Nuevo atributo inicializado en False
 
     def ha_terminado(self):
         return self.t_restante == 0
@@ -17,5 +18,12 @@ class Proceso:
 
     def calcular_tiempo_espera(self):
         return self.calcular_tiempo_retorno() - self.tiempo_irrupcion
+
     def calcular_tiempo_fragmentacion_interna_generada(self):
         self.fragmentacion_interna_generada = self.particion_asignada.tamaño - self.tamaño
+
+    # Método admitir modificado
+    def admitir(self, nuevo_tiempo_arribo):
+        self.admitido = True  # Cambia el atributo a True
+        if nuevo_tiempo_arribo != self.tiempo_arribo:  # Solo cambia si es distinto
+            self.tiempo_arribo = nuevo_tiempo_arribo  # Actualiza tiempo_arribo

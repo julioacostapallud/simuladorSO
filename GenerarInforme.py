@@ -3,7 +3,7 @@ from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria):
+def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria, procesos):
     
     print(Fore.YELLOW + "==================================================")
     print(Fore.YELLOW + f" Estado general al finalizar el Tiempo: {t}")
@@ -27,6 +27,9 @@ def generar_informe(finalizados, listos, suspendidos, procesador, t, memoria):
     ]
     print("- MEMORIA:")
     print(tabulate(filas_memoria, headers=["PAR OD", "PAR TAM", "PID", "P TAM", "FRAG INT"]))
+
+    # Cola de Listos
+    print(f"- POCESOS SOLICITANDO ADMISIÔN: {[proceso.id for proceso in procesos if proceso.tiempo_arribo <= t and not proceso.admitido]}")
 
     # Cola de Listos
     print(f"- COLA DE LISTOS: {[proceso.id for proceso in listos]}")
