@@ -91,9 +91,18 @@ def dibujar_procesador(pantalla, procesador, listos):
         texto_proceso = fuente.render(f"P{procesador.proceso.id}", True, COLOR_VIOLETA_OSCURO)
         pantalla.blit(texto_proceso, (81, 80 + DESPLAZAMIENTO_Y))  # Posición centrada dentro del procesador
     else:
-        # Mostrar un cuadro vacío si no hay proceso, en color blanco
-        texto_libre = fuente.render("LIBRE", True, COLOR_VIOLETA_OSCURO)
-        pantalla.blit(texto_libre, (65, 80 + DESPLAZAMIENTO_Y))
+        if procesador.procesoSaliente is not None and listos:
+            # Mostrar un cambio de contexto
+            texto_libre = fuente_pequeña.render("CAMBIO DE", True, COLOR_VIOLETA_OSCURO)
+            pantalla.blit(texto_libre, (52, 80 + DESPLAZAMIENTO_Y))
+            texto_libre = fuente_pequeña.render("CONTEXTO", True, COLOR_VIOLETA_OSCURO)
+            pantalla.blit(texto_libre, (52, 95 + DESPLAZAMIENTO_Y))
+        else:
+            # Mostrar un cambio de contexto
+            texto_libre = fuente.render("LIBRE", True, COLOR_VIOLETA_OSCURO)
+            pantalla.blit(texto_libre, (65, 80 + DESPLAZAMIENTO_Y))
+
+
 
 # Dibujar particiones de memoria con altura proporcional y borde negro
 def dibujar_memoria(pantalla, memoria):
@@ -191,7 +200,7 @@ def dibujar_cola_suspendidos(pantalla, cola_suspendidos):
 # Dibujar procesos admitidos
 def dibujar_procesos_no_admitidos(pantalla, procesos):
     x, y = 300, 190 + DESPLAZAMIENTO_Y
-    texto_finalizados = fuente_pequeña.render("SOLICITUDES DE ADMISIÓN", True, COLOR_VIOLETA_OSCURO)
+    texto_finalizados = fuente_pequeña.render("NUEVOS", True, COLOR_VIOLETA_OSCURO)
     pantalla.blit(texto_finalizados, (x - 20, 170 + DESPLAZAMIENTO_Y))
     for proceso in procesos:        
         if (x + 35 > 500):
@@ -384,7 +393,7 @@ def dibujar_eventos(pantalla, eventos, comienzo_x, comienzo_y, ancho, cortar_tex
     y_actual = comienzo_y  # Iniciar en la posición vertical indicada
 
     # Dibujar encabezado "Eventos"
-    texto_encabezado = fuente_pequeña.render(f"EVENTOS {t}", True, COLOR_VIOLETA_OSCURO)  # Corregido el f-string
+    texto_encabezado = fuente_pequeña.render(f"EVENTOS DE {t} A {t+1}", True, COLOR_VIOLETA_OSCURO)  # Corregido el f-string
     pantalla.blit(texto_encabezado, (comienzo_x + margen_x, y_actual))  # Colocar el encabezado
     y_actual += alto_linea  # Pasar a la siguiente línea después del encabezado
 
@@ -424,12 +433,12 @@ def dibujar_tabla_rendimiento(pantalla, filas, headers):
     y = 100  # Ajustar la posición vertical según sea necesario
     ancho_total = 220  # Ancho total de la tabla de rendimiento
     alto_fila = 30  # Altura de cada fila
-    alto = alto_fila * (len(filas) + 1)  # Altura total (incluyendo el encabezado)
 
     # Definir el ancho de cada columna según los porcentajes deseados
-    ancho_columna_1 = int(ancho_total * 0.20)  # 25% para la primera columna
-    ancho_columna_2 = int(ancho_total * 0.20)  # 25% para la segunda columna
-    ancho_columna_3 = int(ancho_total * 0.60)  # 50% para la tercera columna
+    ancho_columna_1 = int(ancho_total * 0.15)  # 15% para PF
+    ancho_columna_2 = int(ancho_total * 0.20)  # 20% para TRP
+    ancho_columna_3 = int(ancho_total * 0.20)  # 20% para TEP
+    ancho_columna_4 = int(ancho_total * 0.45)  # 45% para Rendimiento
 
     # Dibujar encabezados
     header_y = y
@@ -439,8 +448,10 @@ def dibujar_tabla_rendimiento(pantalla, filas, headers):
             ancho_columna = ancho_columna_1
         elif i == 1:
             ancho_columna = ancho_columna_2
-        else:
+        elif i == 2:
             ancho_columna = ancho_columna_3
+        else:
+            ancho_columna = ancho_columna_4
 
         x_centrado = centrar_texto_en_casilla(header, fuente, x, ancho_columna)
         texto = fuente.render(header, True, COLOR_TEXTO)
@@ -460,8 +471,10 @@ def dibujar_tabla_rendimiento(pantalla, filas, headers):
                 ancho_columna = ancho_columna_1
             elif col_idx == 1:
                 ancho_columna = ancho_columna_2
-            else:
+            elif col_idx == 2:
                 ancho_columna = ancho_columna_3
+            else:
+                ancho_columna = ancho_columna_4
 
             x_centrado = centrar_texto_en_casilla(str(valor), fuente, x, ancho_columna)
             texto = fuente.render(str(valor), True, COLOR_TEXTO)
@@ -497,17 +510,23 @@ def generar_array_procesos(finalizados):
     ]
     return filas_procesos
 
-def generar_array_rendimiento(finalizados, t):
+def generar_array_rendimiento(finalizados):
     # Cálculo de tiempos promedio
     tiempo_retorno_promedio = sum(proceso.calcular_tiempo_retorno() for proceso in finalizados) / len(finalizados)
     tiempo_espera_promedio = sum(proceso.calcular_tiempo_espera() for proceso in finalizados) / len(finalizados)
-    rendimiento_sistema = len(finalizados) / t
+
+    # Obtener el tiempo de finalización máximo entre los procesos finalizados
+    ultimo_t_finalizacion = max(proceso.tiempo_finalizacion for proceso in finalizados)
+
+    # Calcular rendimiento usando solo el último tiempo de finalización
+    rendimiento_sistema = len(finalizados) / ultimo_t_finalizacion if ultimo_t_finalizacion > 0 else 0
 
     # Formato tabla con columnas solicitadas
     filas_rendimiento = [
-        [f"{tiempo_retorno_promedio:.2f}", f"{tiempo_espera_promedio:.2f}", f"{rendimiento_sistema:.2f}"]
+        [len(finalizados), f"{tiempo_retorno_promedio:.2f}", f"{tiempo_espera_promedio:.2f}", f"{rendimiento_sistema:.2f} P/UT"]
     ]
     return filas_rendimiento
+
 
 # Función para dibujar los procesos en filas de 5
 def dibujar_procesos(pantalla, procesos, t, x, y, l):
@@ -569,10 +588,11 @@ def actualizar_graficos(procesador, memoria, cola_listos, cola_suspendidos, fina
     texto_subtitulo3 = fuente_pequeña.render(f"5 PROCESOS", True, COLOR_VIOLETA_OSCURO)
     pantalla.blit(texto_subtitulo3, (205, 40))
 
-    texto_antes = fuente_grande.render("Tiempo ", True, COLOR_NEGRO)
-    pantalla.blit(texto_antes, (ancho - 255, 10))
-    texto_t = fuente_grande.render(f"{t if t > -1 else '-'}", True, COLOR_VIOLETA_OSCURO)
-    pantalla.blit(texto_t, (ancho - 170, 10))
+    texto_antes = fuente_grande.render("Rango de Tiempo:", True, COLOR_NEGRO)
+    pantalla.blit(texto_antes, (ancho - 320, 10))
+    # texto_t = fuente_grande.render(f"{t if t > -1 else '-'}", True, COLOR_VIOLETA_OSCURO)
+    texto_t = fuente_grande.render(f"{t if t > -1 else '-'}...{t + 1 if t > -1 else '-'}", True, COLOR_VIOLETA_OSCURO)
+    pantalla.blit(texto_t, (ancho - 130, 10))
 
     # Dibujar componentes del simulador
     dibujar_procesador(pantalla, procesador, cola_listos)
@@ -599,11 +619,11 @@ def actualizar_graficos(procesador, memoria, cola_listos, cola_suspendidos, fina
     pantalla.blit(texto_procesos, (500, 245))
     dibujar_tabla_procesos(pantalla, filas_procesos, headers_procesos)
 
-    texto_rendimiento = fuente_pequeña.render("RENDIMIENTO", True, COLOR_VIOLETA_OSCURO)
+    texto_rendimiento = fuente_pequeña.render("ESTADISTICAS", True, COLOR_VIOLETA_OSCURO)
     pantalla.blit(texto_rendimiento, (960, 80))
     if len(finalizados) > 0:
-        filas_rendimiento = generar_array_rendimiento(finalizados, t)
-        headers_rendimiento = ["TRP", "TEP", "Rendimiento"]
+        filas_rendimiento = generar_array_rendimiento(finalizados)
+        headers_rendimiento = ["PF", "TRP", "TEP", "RENDIM."]
         dibujar_tabla_rendimiento(pantalla, filas_rendimiento, headers_rendimiento)
 
     dibujar_eventos(pantalla, eventos, comienzo_x=900, comienzo_y=245, ancho=285, cortar_texto=True, t=t)
